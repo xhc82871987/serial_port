@@ -2,7 +2,7 @@
 
 软件界面如图1所示
 
-![软件界面](README.assets/1.png)
+![软件界面](./README.assets/1.png)
 
 <center>图1 软件界面</center>
 
