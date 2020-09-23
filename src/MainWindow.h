@@ -35,6 +35,8 @@ private:
 
     Ui_MainWindow ui;
 
+    bool opened = false;    //串口是否打开
+
     SerialPort* pSerialPort = nullptr;  //串口工具
 
     QMap<QString, QString> frameMap;    //数据帧名称-内容映射
@@ -68,6 +70,12 @@ private:
     //向data中加入校验码
     void fillCheckcode(QByteArray &data);
 
+    //打开串口
+    void openSerialPort();
+
+    //关闭串口
+    void closeSerialPort();
+
     /**
      * 显示消息
      */
@@ -88,17 +96,14 @@ private slots:
     //打开按钮事件
     void on_openBtn_clicked();
 
-    //关闭按钮事件
-    void on_closeBtn_clicked();
-
     //清空接收框按钮
     void on_clearReceiveBtn_clicked();
 
     //导入配置文件
-    void on_importConfigBtn_clicked();
+    void on_importConfigAction_triggered();
 
-    //发送窗口的数据改变时触发
-    //void on_sendTextEdit_textChanged();
+    //导入配置文件
+    void on_exportConfigAction_triggered();
 
     //发送按钮事件
     void on_sendDataBtn_clicked(bool checked);

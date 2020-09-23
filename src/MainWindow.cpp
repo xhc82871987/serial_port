@@ -11,13 +11,7 @@ MainWindow::MainWindow(QWidget* parent) {
 }
 
 MainWindow::~MainWindow() {
-	//if (pSerialPort != nullptr) {
-	//	if (pSerialPort->isOpen()) {
-	//		pSerialPort->clear();
-	//		pSerialPort->close();
-	//		delete pSerialPort;
-	//	}
-	//}
+
 }
 
 void MainWindow::init() {
@@ -141,6 +135,46 @@ void MainWindow::fillCheckcode(QByteArray& data) {
 	}
 }
 
+void MainWindow::openSerialPort() {
+	//删除已经打开的串口
+	if (pSerialPort != nullptr) {
+		if (pSerialPort->isOpen()) {
+			pSerialPort->clear();
+			pSerialPort->close();
+			delete pSerialPort;
+		}
+	}
+	//初始化串口
+	pSerialPort = new SerialPort(this);
+	QString portName = ui.portBox->currentText();
+	pSerialPort->setPortName(portName);
+	if (pSerialPort->open(QIODevice::ReadWrite)) {
+		int baudRate = ui.baudRateBox->currentText().toInt();
+		int dataBits = ui.dataBitBox->currentIndex();
+		int parity = ui.parityBox->currentIndex();
+		int stopBits = ui.stopBitBox->currentIndex();
+		int flowControl = ui.flowControlBox->currentIndex();
+		pSerialPort->setPortProperty(baudRate, dataBits, parity, stopBits, flowControl);
+		connect(pSerialPort, SIGNAL(readyRead()), pSerialPort, SLOT(readData()));
+		connect(pSerialPort, SIGNAL(response(QString)), this, SLOT(onResponse(QString)));
+		connect(pSerialPort, SIGNAL(sendSuccess(QByteArray)), this, SLOT(onDataSendSuccess(QByteArray)));
+		showMsg(ui.portStatusLabel, tr("串口已打开"), OK);
+	} else {
+		showMsg(ui.portStatusLabel, tr("串口打开失败"), ERROR);
+	}
+}
+
+void MainWindow::closeSerialPort() {
+	if (pSerialPort != nullptr) {
+		if (pSerialPort->isOpen()) {
+			pSerialPort->clear();
+			pSerialPort->close();
+			delete pSerialPort;
+		}
+	}
+	showMsg(ui.portStatusLabel, tr("请选择串口"), OK);
+}
+
 void MainWindow::showMsg(QLabel* label, QString& msg, int type) {
 	label->setText(msg);
 	if (type == OK) {
@@ -186,59 +220,57 @@ void MainWindow::onDataSendSuccess(QByteArray data) {
 }
 
 void MainWindow::on_openBtn_clicked() {
-	//删除已经打开的串口
-	if (pSerialPort != nullptr) {
-		if (pSerialPort->isOpen()) {
-			pSerialPort->clear();
-			pSerialPort->close();
-			delete pSerialPort;
-		}
-	}
-	//初始化串口
-	pSerialPort = new SerialPort(this);
-	QString portName = ui.portBox->currentText();
-	pSerialPort->setPortName(portName);
-	if (pSerialPort->open(QIODevice::ReadWrite)) {
-		int baudRate = ui.baudRateBox->currentText().toInt();
-		int dataBits = ui.dataBitBox->currentIndex();
-		int parity = ui.parityBox->currentIndex();
-		int stopBits = ui.stopBitBox->currentIndex();
-		int flowControl = ui.flowControlBox->currentIndex();
-		pSerialPort->setPortProperty(baudRate, dataBits, parity, stopBits, flowControl);
-		connect(pSerialPort, SIGNAL(readyRead()), pSerialPort, SLOT(readData()));
-		connect(pSerialPort, SIGNAL(response(QString)), this, SLOT(onResponse(QString)));
-		connect(pSerialPort, SIGNAL(sendSuccess(QByteArray)), this, SLOT(onDataSendSuccess(QByteArray)));
-		showMsg(ui.portStatusLabel, tr("串口已打开"), OK);
-		ui.openBtn->setDisabled(true);
-	} else {
-		showMsg(ui.portStatusLabel, tr("串口打开失败"), ERROR);
-	}
-}
+	if (opened) {
+		//串口已经打开，关闭串口
+		closeSerialPort();
+		opened = false;
+		ui.openBtn->setStyleSheet(QString::fromUtf8("QPushButton {background-color: rgb(85, 170, 255);}"));
+		QIcon icon;
+		icon.addFile(QString::fromUtf8(":/images/open.png"), QSize(), QIcon::Normal, QIcon::Off);
+		ui.openBtn->setIcon(icon);
+		ui.openBtn->setText(tr("打开"));
 
-void MainWindow::on_closeBtn_clicked() {
-	if (pSerialPort != nullptr) {
-		if (pSerialPort->isOpen()) {
-			pSerialPort->clear();
-			pSerialPort->close();
-			delete pSerialPort;
-		}
+	} else {
+		//串口未打开，打开串口
+		openSerialPort();
+		opened = true;
+		ui.openBtn->setStyleSheet(QString::fromUtf8("QPushButton {background-color: rgb(255, 0, 0);}"));
+		QIcon icon;
+		icon.addFile(QString::fromUtf8(":/images/stop.png"), QSize(), QIcon::Normal, QIcon::Off);
+		ui.openBtn->setIcon(icon);
+		ui.openBtn->setText(tr("关闭"));
 	}
-	ui.portStatusLabel->setText(tr("串口已关闭"));
-	ui.portStatusLabel->setStyleSheet(QString::fromUtf8("color: red;"));
-	ui.openBtn->setDisabled(false);
 }
 
 void MainWindow::on_clearReceiveBtn_clicked() {
 	ui.receiveTextEdit->clear();
 }
 
-void MainWindow::on_importConfigBtn_clicked() {
+void MainWindow::on_importConfigAction_triggered() {
 	//选择文件
 	 //获取桌面路径
 	QString dir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 	//获取保存的文件路径/文件名
 	QString fileName = QFileDialog::getOpenFileName(this, tr("请选择配置文件"), dir, "JSON files (*.json)");
 	loadConfig(fileName, true);
+}
+
+void MainWindow::on_exportConfigAction_triggered() {
+	//选择文件
+	 //获取桌面路径
+	QString dir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+	//获取保存的文件路径/文件名
+	QString saveName = QFileDialog::getSaveFileName(this, tr("请选择配置文件保存位置"), dir, "JSON files (*.json)");
+	if (!saveName.isEmpty()) {
+		//打开配置文件
+		QFile configFile(QString::fromUtf8("./config.json"));
+		if (configFile.exists() && configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			configFile.copy(saveName);
+			//QByteArray buffer = configFile.readAll();
+			configFile.close(); //关闭配置文件
+			//QFile saveFile(saveName);
+		}
+	}
 }
 
 void MainWindow::on_sendDataBtn_clicked(bool checked) {

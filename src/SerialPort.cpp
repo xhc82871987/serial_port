@@ -48,8 +48,8 @@ void SerialPort::setPortProperty(int baudRate, int dataBits, int parity, int sto
 
 void SerialPort::readData() {
 	QByteArray buf = this->readAll();
-	while (this->waitForReadyRead(10)) {
-		buf += this->readAll();
+	while (this->waitForReadyRead(100)) {
+		buf.append(this->readAll());
 	}
 	emit response(buf);
 }
