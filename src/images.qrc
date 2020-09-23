@@ -1,11 +1,11 @@
 <RCC>
     <qresource prefix="/">
-        <file>images/logo.ico</file>
         <file>images/clear.png</file>
         <file>images/export.png</file>
         <file>images/import.png</file>
         <file>images/open.png</file>
         <file>images/send.png</file>
         <file>images/stop.png</file>
+        <file>images/logo.ico</file>
     </qresource>
 </RCC>
