@@ -11,7 +11,13 @@ MainWindow::MainWindow(QWidget* parent) {
 }
 
 MainWindow::~MainWindow() {
-
+	if (pSerialPort != nullptr) {
+		if (pSerialPort->isOpen()) {
+			pSerialPort->clear();
+			pSerialPort->close();
+		}
+		delete pSerialPort;
+	}
 }
 
 void MainWindow::init() {
@@ -141,11 +147,11 @@ void MainWindow::openSerialPort() {
 		if (pSerialPort->isOpen()) {
 			pSerialPort->clear();
 			pSerialPort->close();
-			delete pSerialPort;
 		}
+	} else {
+		//初始化串口
+		pSerialPort = new SerialPort(this);
 	}
-	//初始化串口
-	pSerialPort = new SerialPort(this);
 	QString portName = ui.portBox->currentText();
 	pSerialPort->setPortName(portName);
 	if (pSerialPort->open(QIODevice::ReadWrite)) {
@@ -169,7 +175,6 @@ void MainWindow::closeSerialPort() {
 		if (pSerialPort->isOpen()) {
 			pSerialPort->clear();
 			pSerialPort->close();
-			delete pSerialPort;
 		}
 	}
 	showMsg(ui.portStatusLabel, tr("请选择串口"), OK);
@@ -233,12 +238,14 @@ void MainWindow::on_openBtn_clicked() {
 	} else {
 		//串口未打开，打开串口
 		openSerialPort();
-		opened = true;
-		ui.openBtn->setStyleSheet(QString::fromUtf8("QPushButton {background-color: rgb(255, 0, 0);}"));
-		QIcon icon;
-		icon.addFile(QString::fromUtf8(":/images/stop.png"), QSize(), QIcon::Normal, QIcon::Off);
-		ui.openBtn->setIcon(icon);
-		ui.openBtn->setText(tr("关闭"));
+		if (pSerialPort->isOpen()) {
+			opened = true;
+			ui.openBtn->setStyleSheet(QString::fromUtf8("QPushButton {background-color: rgb(255, 0, 0);}"));
+			QIcon icon;
+			icon.addFile(QString::fromUtf8(":/images/stop.png"), QSize(), QIcon::Normal, QIcon::Off);
+			ui.openBtn->setIcon(icon);
+			ui.openBtn->setText(tr("关闭"));
+		}
 	}
 }
 
