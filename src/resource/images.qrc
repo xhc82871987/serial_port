@@ -7,5 +7,7 @@
         <file>images/send.png</file>
         <file>images/stop.png</file>
         <file>images/logo.ico</file>
+        <file>images/add.png</file>
+        <file>images/refresh.png</file>
     </qresource>
 </RCC>

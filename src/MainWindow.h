@@ -14,9 +14,11 @@
 #include <QItemSelectionModel>
 #include <QMap>
 #include <qtimer.h>
-#include "ui_MainWindow.h"
-#include "SerialPort.h"
+#include <QSerialPort>
+#include <QSerialPortInfo>
+#include "ui/ui_MainWindow.h"
 #include "DataUtil.h"
+#include "AddDirectiveDlg.h"
 
 //消息类型
 enum MSG_TYPE {
@@ -37,13 +39,19 @@ private:
 
     bool opened = false;    //串口是否打开
 
-    SerialPort* pSerialPort = nullptr;  //串口工具
-
     QMap<QString, QString> frameMap;    //数据帧名称-内容映射
 
     QTimer* pSendTimer = nullptr;       //定时发送数据
 
     DataUtil dataUtil;  //数据处理对象
+
+    QSerialPort serialPort;	//串口类
+
+    QJsonDocument configDoc;    //配置文件信息
+
+    QStandardItemModel* pModel = nullptr;    //显示保存的帧数据的列表模型
+
+    AddDirectiveDlg *pDlg = nullptr;        //添加指令的对话框
 
 public:
 
@@ -58,28 +66,44 @@ private:
      */
     void init();
 
-    //初始化数据帧列表
-    void initFrameTree(QJsonArray &projects);
+    // 初始化数据帧列表
+    void initFrameTree();
 
     //加载配置文件
-    void loadConfig(QString &fileName, bool saveFile = false);
+    void loadConfig(QString fileName = QString("./config.json"));
+
+    //保存配置文件
+    void saveConfig(QJsonDocument &config);
 
     //通过点击右方的条目，向发送框插入数据
     void insertFrame(const QModelIndex& index);
 
-    //向data中加入校验码
-    void fillCheckcode(QByteArray &data);
-
     //打开串口
     void openSerialPort();
+
+    /**
+     * 设置串口属性
+     * @param baudRate 波特率
+     * @param dataBits 数据位
+     * @param parity 校验位
+     * @param stopBits 停止位
+     * @param flowControl 流控
+     */
+    void setPortProperty(int baudRate, int dataBits, int parity, int stopBits, int flowControl);
 
     //关闭串口
     void closeSerialPort();
 
+    //向data中加入校验码
+    void fillCheckcode(QByteArray& data);
+
     /**
      * 显示消息
+     * @param label 消息显示组件
+     * @param msg 消息内容
+     * @param type 消息类型
      */
-    void showMsg(QLabel *label, QString &msg, int type);
+    void showMsg(QLabel* label, QString& msg, int type);
 
 	/*--------------------------------- SLOTS ---------------------------------*/
 private slots:
@@ -87,17 +111,20 @@ private slots:
     //发送数据
     void sendData();
 
-    //接收数据
-    void onResponse(QString data);
-
-    //数据发送成功
-    void onDataSendSuccess(QByteArray data);
+    //读取数据
+    void readData();
 
     //打开按钮事件
     void on_openBtn_clicked();
 
     //清空接收框按钮
     void on_clearReceiveBtn_clicked();
+
+    //导入配置文件
+    void on_addDirectiveAction_triggered();
+
+    //导入配置文件
+    void on_refreshPortAction_triggered();
 
     //导入配置文件
     void on_importConfigAction_triggered();
@@ -116,5 +143,5 @@ private slots:
 
 };
 
-#endif // !_MAIN_WINDOW_H_
+#endif
 
